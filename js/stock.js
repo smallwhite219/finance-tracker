@@ -65,12 +65,16 @@ const Stock = (() => {
             if (!API.isConfigured()) return;
 
             try {
-                const result = await API.fetchRecords(sheetName);
+                const [result, pricesResult] = await Promise.all([
+                    API.fetchRecords(sheetName),
+                    API.getPrices().catch(() => ({ prices: {} })),
+                ]);
                 if (result.error) throw new Error(result.error);
 
                 const records = result.records || [];
+                const prices = pricesResult.prices || {};
                 renderTable(records);
-                renderStats(records);
+                renderStats(records, prices);
                 renderChart(records);
             } catch (err) {
                 console.error(`Load ${sheetName} error:`, err);
@@ -107,7 +111,7 @@ const Stock = (() => {
       `).join('');
         }
 
-        function renderStats(records) {
+        function renderStats(records, prices) {
             if (records.length === 0) {
                 statsEl.innerHTML = '<p class="stats-empty">尚無資料</p>';
                 return;
@@ -126,8 +130,38 @@ const Stock = (() => {
 
             statsEl.innerHTML = Object.entries(grouped).map(([sym, data]) => {
                 const avg = data.totalShares > 0 ? (data.totalCost / data.totalShares) : 0;
+                const currentPrice = prices[sym] ? prices[sym].price : null;
+
+                let priceHtml = '';
+                let plHtml = '';
+
+                if (currentPrice !== null) {
+                    const totalPL = (currentPrice - avg) * data.totalShares;
+                    const roi = avg > 0 ? ((currentPrice - avg) / avg * 100) : 0;
+                    const isProfit = totalPL >= 0;
+                    const plColor = isProfit ? '#22c55e' : '#ef4444';
+                    const plSign = isProfit ? '+' : '';
+
+                    priceHtml = `
+                        <div class="stat-current">
+                            <span style="color:var(--text-muted);font-size:0.75rem;">現價</span>
+                            <span style="font-weight:600;">${currency} ${formatNum(currentPrice)}</span>
+                        </div>
+                    `;
+                    plHtml = `
+                        <div style="display:flex;gap:12px;margin-top:4px;">
+                            <span style="color:${plColor};font-size:0.8rem;font-weight:600;">
+                                ${plSign}${currency} ${formatNum(totalPL.toFixed(2))}
+                            </span>
+                            <span style="color:${plColor};font-size:0.8rem;font-weight:700;background:${isProfit ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)'};padding:2px 8px;border-radius:6px;">
+                                ${plSign}${roi.toFixed(2)}%
+                            </span>
+                        </div>
+                    `;
+                }
+
                 return `
-          <div class="stat-item">
+          <div class="stat-item" style="flex-wrap:wrap;">
             <div>
               <div class="stat-symbol">${sym}</div>
               <div class="stat-shares">${formatNum(data.totalShares)} 股</div>
@@ -135,6 +169,8 @@ const Stock = (() => {
             <div class="stat-detail">
               <div class="stat-avg">${currency} ${avg.toFixed(2)}</div>
               <div class="stat-shares">均價</div>
+              ${priceHtml}
+              ${plHtml}
             </div>
           </div>
         `;

@@ -457,6 +457,13 @@ body {
     color: var(--text-muted);
 }
 
+.stat-current {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 4px;
+}
+
 /* Stat highlight cards */
 .stat-highlight {
     text-align: center;
