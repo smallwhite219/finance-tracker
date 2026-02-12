@@ -152,10 +152,12 @@ const Stock = (() => {
                 grouped[sym] += price * shares;
             });
 
-            const chartData = Object.entries(grouped).map(([label, value]) => ({
-                label,
-                value: Math.round(value * 100) / 100,
-            }));
+            const chartData = Object.entries(grouped)
+                .map(([label, value]) => ({
+                    label,
+                    value: Math.round(value * 100) / 100,
+                }))
+                .sort((a, b) => b.value - a.value);
 
             ChartHelper.createPieChart(chartId, chartData, chartEmpty);
         }
