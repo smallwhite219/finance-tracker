@@ -24,7 +24,11 @@
             </div>
         </div>
         <ul class="nav-list">
-            <li class="nav-item active" data-page="us-stocks">
+            <li class="nav-item active" data-page="overview">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">總覽</span>
+            </li>
+            <li class="nav-item" data-page="us-stocks">
                 <span class="nav-icon">🇺🇸</span>
                 <span class="nav-label">美股</span>
             </li>
@@ -54,8 +58,51 @@
     <!-- Main Content -->
     <main class="main-content" id="mainContent">
 
+        <!-- ===== Overview Page ===== -->
+        <section class="page active" id="page-overview">
+            <div class="page-header">
+                <h1>📊 投資總覽</h1>
+                <p class="page-subtitle">台股 vs 美股 資產配置一覽</p>
+            </div>
+
+            <!-- Market-level pie chart -->
+            <div class="grid-2col">
+                <div class="card chart-card">
+                    <h2 class="card-title">市場配置</h2>
+                    <div class="chart-container">
+                        <canvas id="overviewMarketChart"></canvas>
+                    </div>
+                    <p class="chart-empty" id="overviewMarketChartEmpty">尚無資料</p>
+                </div>
+                <div class="card stats-card">
+                    <h2 class="card-title">市場統計</h2>
+                    <div id="overviewMarketStats" class="stats-list">
+                        <p class="stats-empty">尚無資料</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual stock breakdowns -->
+            <div class="grid-2col">
+                <div class="card chart-card">
+                    <h2 class="card-title">🇹🇼 台股個股佔比</h2>
+                    <div class="chart-container">
+                        <canvas id="overviewTwChart"></canvas>
+                    </div>
+                    <p class="chart-empty" id="overviewTwChartEmpty">尚無資料</p>
+                </div>
+                <div class="card chart-card">
+                    <h2 class="card-title">🇺🇸 美股個股佔比</h2>
+                    <div class="chart-container">
+                        <canvas id="overviewUsChart"></canvas>
+                    </div>
+                    <p class="chart-empty" id="overviewUsChartEmpty">尚無資料</p>
+                </div>
+            </div>
+        </section>
+
         <!-- ===== US Stocks Page ===== -->
-        <section class="page active" id="page-us-stocks">
+        <section class="page" id="page-us-stocks">
             <div class="page-header">
                 <h1>🇺🇸 美股投資</h1>
                 <p class="page-subtitle">追蹤你的美股投資組合</p>
@@ -346,6 +393,7 @@
     <script src="js/chart-helper.js"></script>
     <script src="js/stock.js"></script>
     <script src="js/lottery.js"></script>
+    <script src="js/overview.js"></script>
     <script src="js/app.js"></script>
 </body>
 

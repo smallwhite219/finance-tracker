@@ -58,6 +58,7 @@ function initApp() {
     }
 
     // Init all pages
+    Overview.init();
     Stock.init('us');
     Stock.init('tw');
     Lottery.init();
@@ -100,6 +101,7 @@ function saveSettings() {
     showToast('✅ API URL 已儲存', 'success');
 
     // Re-init with new URL
+    Overview.init();
     Stock.init('us');
     Stock.init('tw');
     Lottery.init();
