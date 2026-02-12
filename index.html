@@ -99,6 +99,22 @@
                     <p class="chart-empty" id="overviewUsChartEmpty">尚無資料</p>
                 </div>
             </div>
+
+            <!-- Risk Analysis Section -->
+            <div class="card risk-card">
+                <div class="risk-header">
+                    <h2 class="card-title">📉 波動風險分析</h2>
+                    <button class="btn btn-secondary btn-sm" id="calcRiskBtn" onclick="Overview.loadRisk()">
+                        <span class="btn-text">計算風險</span>
+                        <span class="btn-spinner" style="display:none;">⏳</span>
+                    </button>
+                </div>
+                <p class="help-text" style="margin-bottom: 16px;">基於近 3 個月歷史股價，計算年化波動率與 Beta 值</p>
+
+                <div id="riskContent">
+                    <p class="stats-empty">點擊「計算風險」開始分析</p>
+                </div>
+            </div>
         </section>
 
         <!-- ===== US Stocks Page ===== -->

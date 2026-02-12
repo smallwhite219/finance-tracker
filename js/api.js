@@ -60,5 +60,14 @@ const API = (() => {
         return await res.json();
     }
 
-    return { getBaseUrl, setBaseUrl, isConfigured, fetchRecords, addRecord, deleteRecord, getPrices };
+    async function fetchRiskMetrics() {
+        const url = getBaseUrl();
+        if (!url) throw new Error('API URL 未設定');
+
+        const res = await fetch(`${url}?action=getRiskMetrics`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    }
+
+    return { getBaseUrl, setBaseUrl, isConfigured, fetchRecords, addRecord, deleteRecord, getPrices, fetchRiskMetrics };
 })();

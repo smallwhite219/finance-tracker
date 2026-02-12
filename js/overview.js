@@ -5,102 +5,102 @@
  */
 
 const Overview = (() => {
-    const FALLBACK_RATE = 32.5; // 備用匯率
+  const FALLBACK_RATE = 32.5; // 備用匯率
 
-    async function fetchExchangeRate() {
-        try {
-            const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-            const data = await res.json();
-            return data.rates.TWD || FALLBACK_RATE;
-        } catch {
-            console.warn('匯率 API 無法取得，使用備用匯率:', FALLBACK_RATE);
-            return FALLBACK_RATE;
-        }
+  async function fetchExchangeRate() {
+    try {
+      const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+      const data = await res.json();
+      return data.rates.TWD || FALLBACK_RATE;
+    } catch {
+      console.warn('匯率 API 無法取得，使用備用匯率:', FALLBACK_RATE);
+      return FALLBACK_RATE;
+    }
+  }
+
+  async function init() {
+    if (!API.isConfigured()) return;
+
+    try {
+      const [usResult, twResult, usdToTwd] = await Promise.all([
+        API.fetchRecords('美股'),
+        API.fetchRecords('台股'),
+        fetchExchangeRate(),
+      ]);
+
+      const usRecords = usResult.records || [];
+      const twRecords = twResult.records || [];
+
+      // 原幣總額
+      const usTotalUSD = calcTotal(usRecords, '價格(USD)');
+      const twTotalTWD = calcTotal(twRecords, '價格(TWD)');
+
+      // 統一換算為 TWD
+      const usTotalTWD = usTotalUSD * usdToTwd;
+      const grandTotalTWD = usTotalTWD + twTotalTWD;
+
+      // 1) 市場配置圓餅圖（統一 TWD，由高到低）
+      const marketData = [
+        { label: '🇹🇼 台股', value: Math.round(twTotalTWD) },
+        { label: '🇺🇸 美股', value: Math.round(usTotalTWD) },
+      ].sort((a, b) => b.value - a.value);
+
+      ChartHelper.createPieChart('overviewMarketChart', marketData, 'overviewMarketChartEmpty');
+
+      // 2) 市場統計
+      renderMarketStats(usTotalUSD, usTotalTWD, twTotalTWD, grandTotalTWD, usdToTwd);
+
+      // 3) 台股個股佔比圓餅圖
+      const twStockData = calcStockBreakdown(twRecords, '價格(TWD)');
+      ChartHelper.createPieChart('overviewTwChart', twStockData, 'overviewTwChartEmpty');
+
+      // 4) 美股個股佔比圓餅圖
+      const usStockData = calcStockBreakdown(usRecords, '價格(USD)');
+      ChartHelper.createPieChart('overviewUsChart', usStockData, 'overviewUsChartEmpty');
+
+    } catch (err) {
+      console.error('Overview load error:', err);
+    }
+  }
+
+  function calcTotal(records, priceKey) {
+    return records.reduce((sum, r) => {
+      return sum + (Number(r[priceKey]) || 0) * (Number(r['股數']) || 0);
+    }, 0);
+  }
+
+  function calcStockBreakdown(records, priceKey) {
+    const grouped = {};
+    records.forEach(r => {
+      const sym = r['代號'];
+      const cost = (Number(r[priceKey]) || 0) * (Number(r['股數']) || 0);
+      if (!grouped[sym]) grouped[sym] = 0;
+      grouped[sym] += cost;
+    });
+
+    return Object.entries(grouped)
+      .map(([label, value]) => ({ label, value: Math.round(value * 100) / 100 }))
+      .sort((a, b) => b.value - a.value);
+  }
+
+  function renderMarketStats(usTotalUSD, usTotalTWD, twTotalTWD, grandTotalTWD, rate) {
+    const statsEl = document.getElementById('overviewMarketStats');
+
+    if (grandTotalTWD === 0) {
+      statsEl.innerHTML = '<p class="stats-empty">尚無資料</p>';
+      return;
     }
 
-    async function init() {
-        if (!API.isConfigured()) return;
+    const usPct = ((usTotalTWD / grandTotalTWD) * 100).toFixed(1);
+    const twPct = ((twTotalTWD / grandTotalTWD) * 100).toFixed(1);
 
-        try {
-            const [usResult, twResult, usdToTwd] = await Promise.all([
-                API.fetchRecords('美股'),
-                API.fetchRecords('台股'),
-                fetchExchangeRate(),
-            ]);
+    // 按換算後 TWD 總額由高到低排序
+    const items = [
+      { icon: '🇹🇼', label: '台股', totalTWD: twTotalTWD, display: `TWD ${twTotalTWD.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, pct: twPct },
+      { icon: '🇺🇸', label: '美股', totalTWD: usTotalTWD, display: `USD ${usTotalUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })} (≈TWD ${Math.round(usTotalTWD).toLocaleString()})`, pct: usPct },
+    ].sort((a, b) => b.totalTWD - a.totalTWD);
 
-            const usRecords = usResult.records || [];
-            const twRecords = twResult.records || [];
-
-            // 原幣總額
-            const usTotalUSD = calcTotal(usRecords, '價格(USD)');
-            const twTotalTWD = calcTotal(twRecords, '價格(TWD)');
-
-            // 統一換算為 TWD
-            const usTotalTWD = usTotalUSD * usdToTwd;
-            const grandTotalTWD = usTotalTWD + twTotalTWD;
-
-            // 1) 市場配置圓餅圖（統一 TWD，由高到低）
-            const marketData = [
-                { label: '🇹🇼 台股', value: Math.round(twTotalTWD) },
-                { label: '🇺🇸 美股', value: Math.round(usTotalTWD) },
-            ].sort((a, b) => b.value - a.value);
-
-            ChartHelper.createPieChart('overviewMarketChart', marketData, 'overviewMarketChartEmpty');
-
-            // 2) 市場統計
-            renderMarketStats(usTotalUSD, usTotalTWD, twTotalTWD, grandTotalTWD, usdToTwd);
-
-            // 3) 台股個股佔比圓餅圖
-            const twStockData = calcStockBreakdown(twRecords, '價格(TWD)');
-            ChartHelper.createPieChart('overviewTwChart', twStockData, 'overviewTwChartEmpty');
-
-            // 4) 美股個股佔比圓餅圖
-            const usStockData = calcStockBreakdown(usRecords, '價格(USD)');
-            ChartHelper.createPieChart('overviewUsChart', usStockData, 'overviewUsChartEmpty');
-
-        } catch (err) {
-            console.error('Overview load error:', err);
-        }
-    }
-
-    function calcTotal(records, priceKey) {
-        return records.reduce((sum, r) => {
-            return sum + (Number(r[priceKey]) || 0) * (Number(r['股數']) || 0);
-        }, 0);
-    }
-
-    function calcStockBreakdown(records, priceKey) {
-        const grouped = {};
-        records.forEach(r => {
-            const sym = r['代號'];
-            const cost = (Number(r[priceKey]) || 0) * (Number(r['股數']) || 0);
-            if (!grouped[sym]) grouped[sym] = 0;
-            grouped[sym] += cost;
-        });
-
-        return Object.entries(grouped)
-            .map(([label, value]) => ({ label, value: Math.round(value * 100) / 100 }))
-            .sort((a, b) => b.value - a.value);
-    }
-
-    function renderMarketStats(usTotalUSD, usTotalTWD, twTotalTWD, grandTotalTWD, rate) {
-        const statsEl = document.getElementById('overviewMarketStats');
-
-        if (grandTotalTWD === 0) {
-            statsEl.innerHTML = '<p class="stats-empty">尚無資料</p>';
-            return;
-        }
-
-        const usPct = ((usTotalTWD / grandTotalTWD) * 100).toFixed(1);
-        const twPct = ((twTotalTWD / grandTotalTWD) * 100).toFixed(1);
-
-        // 按換算後 TWD 總額由高到低排序
-        const items = [
-            { icon: '🇹🇼', label: '台股', totalTWD: twTotalTWD, display: `TWD ${twTotalTWD.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, pct: twPct },
-            { icon: '🇺🇸', label: '美股', totalTWD: usTotalTWD, display: `USD ${usTotalUSD.toLocaleString(undefined, { maximumFractionDigits: 0 })} (≈TWD ${Math.round(usTotalTWD).toLocaleString()})`, pct: usPct },
-        ].sort((a, b) => b.totalTWD - a.totalTWD);
-
-        statsEl.innerHTML = `
+    statsEl.innerHTML = `
       <div class="stat-item" style="border-bottom: none; padding-bottom: 4px;">
         <div class="stat-shares">匯率：1 USD = ${rate.toFixed(2)} TWD</div>
       </div>
@@ -126,7 +126,123 @@ const Overview = (() => {
         </div>
       </div>
     `;
+  }
+
+  // ===== Risk Analysis =====
+
+  async function loadRisk() {
+    const btn = document.getElementById('calcRiskBtn');
+    const content = document.getElementById('riskContent');
+    const btnText = btn.querySelector('.btn-text');
+    const btnSpinner = btn.querySelector('.btn-spinner');
+
+    btnText.style.display = 'none';
+    btnSpinner.style.display = 'inline';
+    btn.disabled = true;
+    content.innerHTML = '<p class="stats-empty">⏳ 正在抓取歷史數據並計算風險指標...</p>';
+
+    try {
+      const data = await API.fetchRiskMetrics();
+      if (data.error) {
+        content.innerHTML = `<p class="stats-empty" style="color:#f87171;">❌ ${data.error}</p>`;
+        return;
+      }
+      renderRisk(data);
+    } catch (err) {
+      content.innerHTML = `<p class="stats-empty" style="color:#f87171;">❌ 計算失敗: ${err.message}</p>`;
+    } finally {
+      btnText.style.display = 'inline';
+      btnSpinner.style.display = 'none';
+      btn.disabled = false;
+    }
+  }
+
+  function getRiskLevel(vol) {
+    if (vol === null) return { label: '—', color: '#888', level: 0 };
+    if (vol < 15) return { label: '低風險', color: '#22c55e', level: 1 };
+    if (vol < 25) return { label: '中等', color: '#eab308', level: 2 };
+    if (vol < 40) return { label: '偏高', color: '#f97316', level: 3 };
+    return { label: '高風險', color: '#ef4444', level: 4 };
+  }
+
+  function renderRisk(data) {
+    const content = document.getElementById('riskContent');
+
+    // Portfolio summary cards
+    const twRisk = getRiskLevel(data.twPortfolioVol);
+    const usRisk = getRiskLevel(data.usPortfolioVol);
+
+    let html = `
+        <div class="risk-summary">
+            <div class="risk-gauge">
+                <div class="risk-label">🇹🇼 台股組合</div>
+                <div class="risk-value" style="color:${twRisk.color}">
+                    ${data.twPortfolioVol !== null ? data.twPortfolioVol + '%' : '—'}
+                </div>
+                <div class="risk-level" style="color:${twRisk.color}">${twRisk.label}</div>
+                <div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min((data.twPortfolioVol || 0) / 60 * 100, 100)}%;background:${twRisk.color}"></div></div>
+                <div class="risk-bench">基準 0050: ${data.benchmarks['0050'] !== null ? data.benchmarks['0050'] + '%' : '—'}</div>
+            </div>
+            <div class="risk-gauge">
+                <div class="risk-label">🇺🇸 美股組合</div>
+                <div class="risk-value" style="color:${usRisk.color}">
+                    ${data.usPortfolioVol !== null ? data.usPortfolioVol + '%' : '—'}
+                </div>
+                <div class="risk-level" style="color:${usRisk.color}">${usRisk.label}</div>
+                <div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min((data.usPortfolioVol || 0) / 60 * 100, 100)}%;background:${usRisk.color}"></div></div>
+                <div class="risk-bench">基準 SPY: ${data.benchmarks['SPY'] !== null ? data.benchmarks['SPY'] + '%' : '—'}</div>
+            </div>
+        </div>
+        `;
+
+    // Per-stock tables
+    const twEntries = Object.entries(data.tw || {});
+    const usEntries = Object.entries(data.us || {});
+
+    if (twEntries.length > 0) {
+      html += renderRiskTable('🇹🇼 台股個股風險', twEntries, '0050');
     }
 
-    return { init };
+    if (usEntries.length > 0) {
+      html += renderRiskTable('🇺🇸 美股個股風險', usEntries, 'SPY');
+    }
+
+    content.innerHTML = html;
+  }
+
+  function renderRiskTable(title, entries, benchLabel) {
+    // Sort by volatility descending
+    entries.sort((a, b) => (b[1].volatility || 0) - (a[1].volatility || 0));
+
+    let rows = entries.map(([sym, m]) => {
+      const risk = getRiskLevel(m.volatility);
+      return `
+                <tr>
+                    <td><strong>${sym}</strong></td>
+                    <td>${m.volatility !== null ? m.volatility + '%' : '—'}</td>
+                    <td>${m.beta !== null ? m.beta : '—'}</td>
+                    <td style="color:${risk.color}">${risk.label}</td>
+                </tr>
+            `;
+    }).join('');
+
+    return `
+            <h3 style="margin: 24px 0 12px; font-size: 1rem; color: rgba(255,255,255,0.8);">${title}</h3>
+            <div class="table-wrapper">
+                <table class="risk-table">
+                    <thead>
+                        <tr>
+                            <th>代號</th>
+                            <th>年化波動率</th>
+                            <th>Beta (vs ${benchLabel})</th>
+                            <th>風險等級</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        `;
+  }
+
+  return { init, loadRisk };
 })();

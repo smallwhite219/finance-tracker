@@ -39,6 +39,9 @@ function handleRequest(e) {
       case 'getPrices':
         result = getCurrentPrices();
         break;
+      case 'getRiskMetrics':
+        result = handleGetRiskMetrics();
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -313,6 +316,186 @@ function sendLineNotify(message) {
   } catch (e) {
     Logger.log('LINE Notify error: ' + e.message);
   }
+}
+
+// ========== 風險分析 ==========
+
+function handleGetRiskMetrics() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const usSheet = ss.getSheetByName('美股');
+  const twSheet = ss.getSheetByName('台股');
+
+  const usSymbols = getUniqueSymbols(usSheet);
+  const twSymbols = getUniqueSymbols(twSheet);
+
+  // Build all Yahoo Finance requests in one batch (parallel)
+  const allSymbols = [
+    ...usSymbols.map(s => ({ symbol: s, yahoo: s, market: 'us' })),
+    ...twSymbols.map(s => ({ symbol: s, yahoo: s + '.TW', market: 'tw' })),
+    { symbol: '_SPY', yahoo: 'SPY', market: 'bench_us' },
+    { symbol: '_0050', yahoo: '0050.TW', market: 'bench_tw' },
+  ];
+
+  const end = Math.floor(Date.now() / 1000);
+  const start = end - (100 * 24 * 60 * 60);
+
+  const requests = allSymbols.map(s => ({
+    url: 'https://query1.finance.yahoo.com/v8/finance/chart/' +
+         encodeURIComponent(s.yahoo) +
+         '?range=3mo&interval=1d&period1=' + start + '&period2=' + end,
+    muteHttpExceptions: true,
+    headers: { 'User-Agent': 'Mozilla/5.0' },
+  }));
+
+  let responses;
+  try {
+    responses = UrlFetchApp.fetchAll(requests);
+  } catch (e) {
+    return { error: '無法取得歷史股價: ' + e.message };
+  }
+
+  // Parse all responses
+  const priceMap = {};
+  responses.forEach((res, i) => {
+    const info = allSymbols[i];
+    try {
+      const json = JSON.parse(res.getContentText());
+      const closes = json.chart.result[0].indicators.quote[0].close;
+      priceMap[info.symbol] = closes.filter(c => c !== null && c > 0);
+    } catch (e) {
+      priceMap[info.symbol] = [];
+    }
+  });
+
+  const benchUS = priceMap['_SPY'] || [];
+  const benchTW = priceMap['_0050'] || [];
+
+  // Calculate per-stock metrics
+  const usStocks = {};
+  const twStocks = {};
+
+  usSymbols.forEach(sym => {
+    const prices = priceMap[sym] || [];
+    if (prices.length > 10) {
+      usStocks[sym] = {
+        volatility: calcAnnualizedVol(prices),
+        beta: calcBeta(prices, benchUS),
+        dataPoints: prices.length,
+      };
+    }
+  });
+
+  twSymbols.forEach(sym => {
+    const prices = priceMap[sym] || [];
+    if (prices.length > 10) {
+      twStocks[sym] = {
+        volatility: calcAnnualizedVol(prices),
+        beta: calcBeta(prices, benchTW),
+        dataPoints: prices.length,
+      };
+    }
+  });
+
+  // Portfolio-weighted volatility
+  const usHoldings = getHoldings(usSheet, '價格(USD)');
+  const twHoldings = getHoldings(twSheet, '價格(TWD)');
+
+  const usPortfolioVol = calcPortfolioVol(usStocks, usHoldings);
+  const twPortfolioVol = calcPortfolioVol(twStocks, twHoldings);
+
+  return {
+    us: usStocks,
+    tw: twStocks,
+    usPortfolioVol,
+    twPortfolioVol,
+    benchmarks: {
+      SPY: benchUS.length > 10 ? calcAnnualizedVol(benchUS) : null,
+      '0050': benchTW.length > 10 ? calcAnnualizedVol(benchTW) : null,
+    },
+  };
+}
+
+function getUniqueSymbols(sheet) {
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues().flat();
+  return [...new Set(data.filter(s => s).map(s => String(s).trim()))];
+}
+
+function getHoldings(sheet, priceKey) {
+  if (!sheet || sheet.getLastRow() <= 1) return {};
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const symIdx = headers.indexOf('代號');
+  const priceIdx = headers.indexOf(priceKey);
+  const sharesIdx = headers.indexOf('股數');
+  if (symIdx === -1 || priceIdx === -1 || sharesIdx === -1) return {};
+
+  const holdings = {};
+  for (let i = 1; i < data.length; i++) {
+    const sym = String(data[i][symIdx]).trim();
+    const cost = (Number(data[i][priceIdx]) || 0) * (Number(data[i][sharesIdx]) || 0);
+    holdings[sym] = (holdings[sym] || 0) + cost;
+  }
+  return holdings;
+}
+
+function calcDailyReturns(prices) {
+  const returns = [];
+  for (let i = 1; i < prices.length; i++) {
+    if (prices[i - 1] > 0) {
+      returns.push((prices[i] - prices[i - 1]) / prices[i - 1]);
+    }
+  }
+  return returns;
+}
+
+function calcAnnualizedVol(prices) {
+  const returns = calcDailyReturns(prices);
+  if (returns.length < 2) return null;
+
+  const mean = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const variance = returns.reduce((s, r) => s + Math.pow(r - mean, 2), 0) / (returns.length - 1);
+  const dailyVol = Math.sqrt(variance);
+
+  // 年化波動率 (%), 保留2位小數
+  return Math.round(dailyVol * Math.sqrt(252) * 10000) / 100;
+}
+
+function calcBeta(stockPrices, marketPrices) {
+  const len = Math.min(stockPrices.length, marketPrices.length);
+  if (len < 10) return null;
+
+  const sReturns = calcDailyReturns(stockPrices.slice(-len));
+  const mReturns = calcDailyReturns(marketPrices.slice(-len));
+  const n = Math.min(sReturns.length, mReturns.length);
+  if (n < 5) return null;
+
+  const meanS = sReturns.slice(0, n).reduce((s, r) => s + r, 0) / n;
+  const meanM = mReturns.slice(0, n).reduce((s, r) => s + r, 0) / n;
+
+  let cov = 0, varM = 0;
+  for (let i = 0; i < n; i++) {
+    cov += (sReturns[i] - meanS) * (mReturns[i] - meanM);
+    varM += Math.pow(mReturns[i] - meanM, 2);
+  }
+
+  if (varM === 0) return null;
+  return Math.round((cov / varM) * 100) / 100;
+}
+
+function calcPortfolioVol(stockMetrics, holdings) {
+  const total = Object.values(holdings).reduce((s, v) => s + v, 0);
+  if (total === 0) return null;
+
+  // 加權平均波動率 (簡化版，不考慮相關性)
+  let weightedVol = 0;
+  Object.entries(holdings).forEach(([sym, cost]) => {
+    const weight = cost / total;
+    const vol = stockMetrics[sym] ? stockMetrics[sym].volatility : 0;
+    if (vol) weightedVol += weight * vol;
+  });
+
+  return Math.round(weightedVol * 100) / 100;
 }
 
 // ========== 初始化 ==========
