@@ -22,14 +22,16 @@ const Overview = (() => {
     if (!API.isConfigured()) return;
 
     try {
-      const [usResult, twResult, usdToTwd] = await Promise.all([
+      const [usResult, twResult, usdToTwd, pricesResult] = await Promise.all([
         API.fetchRecords('美股'),
         API.fetchRecords('台股'),
         fetchExchangeRate(),
+        API.getPrices().catch(() => ({ prices: {} })),
       ]);
 
       const usRecords = usResult.records || [];
       const twRecords = twResult.records || [];
+      const prices = pricesResult.prices || {};
 
       // 原幣總額
       const usTotalUSD = calcTotal(usRecords, '價格(USD)');
@@ -38,6 +40,9 @@ const Overview = (() => {
       // 統一換算為 TWD
       const usTotalTWD = usTotalUSD * usdToTwd;
       const grandTotalTWD = usTotalTWD + twTotalTWD;
+
+      // P&L 計算
+      renderPortfolioPL(usRecords, twRecords, prices, usdToTwd);
 
       // 1) 市場配置圓餅圖（統一 TWD，由高到低）
       const marketData = [
@@ -128,6 +133,82 @@ const Overview = (() => {
     `;
   }
 
+  // ===== Portfolio P&L =====
+
+  function renderPortfolioPL(usRecords, twRecords, prices, usdToTwd) {
+    const container = document.getElementById('overviewPlSummary');
+
+    // Group holdings per symbol
+    function calcHoldings(records, priceKey) {
+      const grouped = {};
+      records.forEach(r => {
+        const sym = String(r['代號']).trim();
+        if (!grouped[sym]) grouped[sym] = { totalCost: 0, totalShares: 0 };
+        const p = Number(r[priceKey]) || 0;
+        const s = Number(r['股數']) || 0;
+        grouped[sym].totalCost += p * s;
+        grouped[sym].totalShares += s;
+      });
+      return grouped;
+    }
+
+    const twHoldings = calcHoldings(twRecords, '價格(TWD)');
+    const usHoldings = calcHoldings(usRecords, '價格(USD)');
+
+    let totalCostTWD = 0;
+    let totalValueTWD = 0;
+    let hasPrices = false;
+
+    // TW stocks
+    Object.entries(twHoldings).forEach(([sym, h]) => {
+      totalCostTWD += h.totalCost;
+      const cp = prices[sym] ? prices[sym].price : null;
+      if (cp !== null) {
+        totalValueTWD += cp * h.totalShares;
+        hasPrices = true;
+      } else {
+        totalValueTWD += h.totalCost; // fallback to cost
+      }
+    });
+
+    // US stocks (convert to TWD)
+    Object.entries(usHoldings).forEach(([sym, h]) => {
+      totalCostTWD += h.totalCost * usdToTwd;
+      const cp = prices[sym] ? prices[sym].price : null;
+      if (cp !== null) {
+        totalValueTWD += cp * h.totalShares * usdToTwd;
+        hasPrices = true;
+      } else {
+        totalValueTWD += h.totalCost * usdToTwd; // fallback
+      }
+    });
+
+    if (!hasPrices && totalCostTWD === 0) return;
+
+    container.style.display = 'grid';
+
+    const pl = totalValueTWD - totalCostTWD;
+    const roi = totalCostTWD > 0 ? (pl / totalCostTWD * 100) : 0;
+    const isProfit = pl >= 0;
+    const plColor = isProfit ? '#22c55e' : '#ef4444';
+    const plSign = isProfit ? '+' : '';
+
+    const fmt = n => Math.round(n).toLocaleString();
+
+    document.getElementById('plTotalCost').textContent = `TWD ${fmt(totalCostTWD)}`;
+    document.getElementById('plTotalValue').textContent = `TWD ${fmt(totalValueTWD)}`;
+    document.getElementById('plTotalValue').style.color = plColor;
+
+    const plEl = document.getElementById('plTotalPL');
+    plEl.textContent = `${plSign}TWD ${fmt(pl)}`;
+    plEl.style.color = plColor;
+    plEl.className = `stat-value ${isProfit ? 'win' : 'loss'}`;
+
+    const roiEl = document.getElementById('plTotalROI');
+    roiEl.textContent = `${plSign}${roi.toFixed(2)}%`;
+    roiEl.style.color = plColor;
+  }
+
   // ===== Risk Analysis =====
 
   async function loadRisk() {
@@ -172,8 +253,18 @@ const Overview = (() => {
     const twRisk = getRiskLevel(data.twPortfolioVol);
     const usRisk = getRiskLevel(data.usPortfolioVol);
 
+    // Combined portfolio risk (weighted average)
+    let combinedVol = null;
+    if (data.twPortfolioVol !== null || data.usPortfolioVol !== null) {
+      const twV = data.twPortfolioVol || 0;
+      const usV = data.usPortfolioVol || 0;
+      const total = twV + usV;
+      combinedVol = total > 0 ? Math.round(((twV + usV) / (twV > 0 && usV > 0 ? 2 : 1)) * 100) / 100 : null;
+    }
+    const combinedRisk = getRiskLevel(combinedVol);
+
     let html = `
-        <div class="risk-summary">
+        <div class="risk-summary" style="grid-template-columns: repeat(3, 1fr);">
             <div class="risk-gauge">
                 <div class="risk-label">🇹🇼 台股組合</div>
                 <div class="risk-value" style="color:${twRisk.color}">
@@ -191,6 +282,15 @@ const Overview = (() => {
                 <div class="risk-level" style="color:${usRisk.color}">${usRisk.label}</div>
                 <div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min((data.usPortfolioVol || 0) / 60 * 100, 100)}%;background:${usRisk.color}"></div></div>
                 <div class="risk-bench">基準 SPY: ${data.benchmarks['SPY'] !== null ? data.benchmarks['SPY'] + '%' : '—'}</div>
+            </div>
+            <div class="risk-gauge" style="border-color:${combinedRisk.color}40;">
+                <div class="risk-label">🌐 總體組合</div>
+                <div class="risk-value" style="color:${combinedRisk.color}">
+                    ${combinedVol !== null ? combinedVol + '%' : '—'}
+                </div>
+                <div class="risk-level" style="color:${combinedRisk.color}">${combinedRisk.label}</div>
+                <div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min((combinedVol || 0) / 60 * 100, 100)}%;background:${combinedRisk.color}"></div></div>
+                <div class="risk-bench">台+美 加權平均</div>
             </div>
         </div>
         `;
