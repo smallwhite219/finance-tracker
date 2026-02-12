@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投資記帳系統</title>
+    <meta name="description" content="美股、台股投資記帳與樂透記錄系統，支援停損停利提醒">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+
+<body>
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">📊</span>
+                <span class="logo-text">投資記帳</span>
+            </div>
+        </div>
+        <ul class="nav-list">
+            <li class="nav-item active" data-page="us-stocks">
+                <span class="nav-icon">🇺🇸</span>
+                <span class="nav-label">美股</span>
+            </li>
+            <li class="nav-item" data-page="tw-stocks">
+                <span class="nav-icon">🇹🇼</span>
+                <span class="nav-label">台股</span>
+            </li>
+            <li class="nav-item" data-page="lottery">
+                <span class="nav-icon">🎰</span>
+                <span class="nav-label">樂透</span>
+            </li>
+        </ul>
+        <div class="sidebar-footer">
+            <div class="api-status" id="apiStatus">
+                <span class="status-dot offline"></span>
+                <span>未連線</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile top bar -->
+    <header class="mobile-header">
+        <button class="menu-toggle" id="menuToggle">☰</button>
+        <span class="mobile-title">投資記帳</span>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content" id="mainContent">
+
+        <!-- ===== US Stocks Page ===== -->
+        <section class="page active" id="page-us-stocks">
+            <div class="page-header">
+                <h1>🇺🇸 美股投資</h1>
+                <p class="page-subtitle">追蹤你的美股投資組合</p>
+            </div>
+
+            <!-- Input Form -->
+            <div class="card form-card">
+                <h2 class="card-title">新增紀錄</h2>
+                <form id="usStockForm" class="stock-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>股票代號 <span class="required">*</span></label>
+                            <input type="text" name="代號" placeholder="如 AAPL" required>
+                        </div>
+                        <div class="form-group">
+                            <label>購買日期 <span class="required">*</span></label>
+                            <input type="date" name="日期" required>
+                        </div>
+                        <div class="form-group">
+                            <label>購買價格 (USD) <span class="required">*</span></label>
+                            <input type="number" name="價格(USD)" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>股數 <span class="required">*</span></label>
+                            <input type="number" name="股數" step="0.01" min="0" placeholder="0" required>
+                        </div>
+                    </div>
+                    <div class="form-row targets-row">
+                        <div class="form-group">
+                            <label>🔴 停損價</label>
+                            <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                        <div class="form-group">
+                            <label>🟢 停利價</label>
+                            <input type="number" name="停利價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                        <div class="form-group">
+                            <label>🔵 加碼價</label>
+                            <input type="number" name="加碼價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                        <div class="form-group">
+                            <label>🟡 減碼價</label>
+                            <input type="number" name="減碼價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">新增</span>
+                        <span class="btn-spinner" style="display:none;">⏳</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Stats + Chart -->
+            <div class="grid-2col">
+                <div class="card chart-card">
+                    <h2 class="card-title">投資佔比</h2>
+                    <div class="chart-container">
+                        <canvas id="usStockChart"></canvas>
+                    </div>
+                    <p class="chart-empty" id="usChartEmpty">尚無資料</p>
+                </div>
+                <div class="card stats-card">
+                    <h2 class="card-title">持股統計</h2>
+                    <div id="usStockStats" class="stats-list">
+                        <p class="stats-empty">尚無資料</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Records Table -->
+            <div class="card table-card">
+                <h2 class="card-title">交易紀錄</h2>
+                <div class="table-wrapper">
+                    <table id="usStockTable">
+                        <thead>
+                            <tr>
+                                <th>代號</th>
+                                <th>日期</th>
+                                <th>價格</th>
+                                <th>股數</th>
+                                <th>停損</th>
+                                <th>停利</th>
+                                <th>加碼</th>
+                                <th>減碼</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p class="table-empty" id="usTableEmpty">尚無交易紀錄</p>
+            </div>
+        </section>
+
+        <!-- ===== TW Stocks Page ===== -->
+        <section class="page" id="page-tw-stocks">
+            <div class="page-header">
+                <h1>🇹🇼 台股投資</h1>
+                <p class="page-subtitle">追蹤你的台股投資組合</p>
+            </div>
+
+            <div class="card form-card">
+                <h2 class="card-title">新增紀錄</h2>
+                <form id="twStockForm" class="stock-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>股票代號 <span class="required">*</span></label>
+                            <input type="text" name="代號" placeholder="如 2330" required>
+                        </div>
+                        <div class="form-group">
+                            <label>購買日期 <span class="required">*</span></label>
+                            <input type="date" name="日期" required>
+                        </div>
+                        <div class="form-group">
+                            <label>購買價格 (TWD) <span class="required">*</span></label>
+                            <input type="number" name="價格(TWD)" step="0.01" min="0" placeholder="0.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label>股數 <span class="required">*</span></label>
+                            <input type="number" name="股數" step="1" min="0" placeholder="0" required>
+                        </div>
+                    </div>
+                    <div class="form-row targets-row">
+                        <div class="form-group">
+                            <label>🔴 停損價</label>
+                            <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                        <div class="form-group">
+                            <label>🟢 停利價</label>
+                            <input type="number" name="停利價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                        <div class="form-group">
+                            <label>🔵 加碼價</label>
+                            <input type="number" name="加碼價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                        <div class="form-group">
+                            <label>🟡 減碼價</label>
+                            <input type="number" name="減碼價" step="0.01" min="0" placeholder="選填">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">新增</span>
+                        <span class="btn-spinner" style="display:none;">⏳</span>
+                    </button>
+                </form>
+            </div>
+
+            <div class="grid-2col">
+                <div class="card chart-card">
+                    <h2 class="card-title">投資佔比</h2>
+                    <div class="chart-container">
+                        <canvas id="twStockChart"></canvas>
+                    </div>
+                    <p class="chart-empty" id="twChartEmpty">尚無資料</p>
+                </div>
+                <div class="card stats-card">
+                    <h2 class="card-title">持股統計</h2>
+                    <div id="twStockStats" class="stats-list">
+                        <p class="stats-empty">尚無資料</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card table-card">
+                <h2 class="card-title">交易紀錄</h2>
+                <div class="table-wrapper">
+                    <table id="twStockTable">
+                        <thead>
+                            <tr>
+                                <th>代號</th>
+                                <th>日期</th>
+                                <th>價格</th>
+                                <th>股數</th>
+                                <th>停損</th>
+                                <th>停利</th>
+                                <th>加碼</th>
+                                <th>減碼</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p class="table-empty" id="twTableEmpty">尚無交易紀錄</p>
+            </div>
+        </section>
+
+        <!-- ===== Lottery Page ===== -->
+        <section class="page" id="page-lottery">
+            <div class="page-header">
+                <h1>🎰 樂透紀錄</h1>
+                <p class="page-subtitle">記錄你的幸運號碼</p>
+            </div>
+
+            <div class="card form-card">
+                <h2 class="card-title">新增紀錄</h2>
+                <form id="lotteryForm" class="stock-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>購買日期 <span class="required">*</span></label>
+                            <input type="date" name="日期" required>
+                        </div>
+                        <div class="form-group">
+                            <label>期數 <span class="required">*</span></label>
+                            <input type="text" name="期數" placeholder="如 113000001" required>
+                        </div>
+                        <div class="form-group">
+                            <label>號碼</label>
+                            <input type="text" name="號碼" placeholder="如 01,05,12,23,31,38">
+                        </div>
+                        <div class="form-group">
+                            <label>花費 <span class="required">*</span></label>
+                            <input type="number" name="花費" step="1" min="0" placeholder="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label>中獎金額</label>
+                            <input type="number" name="中獎金額" step="1" min="0" placeholder="0" value="0">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="btn-text">新增</span>
+                        <span class="btn-spinner" style="display:none;">⏳</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Lottery Stats -->
+            <div class="grid-3col">
+                <div class="card stat-highlight">
+                    <div class="stat-label">總花費</div>
+                    <div class="stat-value" id="lotteryTotalSpent">$0</div>
+                </div>
+                <div class="card stat-highlight">
+                    <div class="stat-label">總中獎</div>
+                    <div class="stat-value win" id="lotteryTotalWon">$0</div>
+                </div>
+                <div class="card stat-highlight">
+                    <div class="stat-label">損益</div>
+                    <div class="stat-value" id="lotteryNet">$0</div>
+                </div>
+            </div>
+
+            <div class="card table-card">
+                <h2 class="card-title">購買紀錄</h2>
+                <div class="table-wrapper">
+                    <table id="lotteryTable">
+                        <thead>
+                            <tr>
+                                <th>日期</th>
+                                <th>期數</th>
+                                <th>號碼</th>
+                                <th>花費</th>
+                                <th>中獎金額</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <p class="table-empty" id="lotteryTableEmpty">尚無紀錄</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Toast Notification -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal card">
+            <h2 class="card-title">⚙️ API 設定</h2>
+            <div class="form-group">
+                <label>Google Apps Script Web App URL</label>
+                <input type="url" id="apiUrlInput" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+                <p class="help-text">部署 Apps Script 後取得的 URL</p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeSettings()">取消</button>
+                <button class="btn btn-primary" onclick="saveSettings()">儲存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Toggle -->
+    <button class="settings-fab" id="settingsFab" title="API 設定">⚙️</button>
+
+    <script src="js/api.js"></script>
+    <script src="js/chart-helper.js"></script>
+    <script src="js/stock.js"></script>
+    <script src="js/lottery.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
