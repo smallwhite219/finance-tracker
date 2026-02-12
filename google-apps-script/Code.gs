@@ -96,13 +96,22 @@ function addRecord(sheetName, data) {
       .setFontWeight('bold')
       .setBackground('#4a86c8')
       .setFontColor('#ffffff');
+    // 設定「代號」欄為純文字，避免前導零被吃掉
+    sheet.getRange('A:A').setNumberFormat('@');
   }
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const row = headers.map(h => data[h] !== undefined ? data[h] : '');
   sheet.appendRow(row);
 
-  return { success: true, row: sheet.getLastRow() };
+  // 確保代號欄為純文字格式
+  const newRow = sheet.getLastRow();
+  const symIdx = headers.indexOf('代號');
+  if (symIdx !== -1) {
+    sheet.getRange(newRow, symIdx + 1).setNumberFormat('@').setValue(String(data['代號'] || ''));
+  }
+
+  return { success: true, row: newRow };
 }
 
 function deleteRecord(sheetName, rowNum) {
