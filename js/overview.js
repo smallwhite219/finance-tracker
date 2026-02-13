@@ -256,6 +256,14 @@ const Overview = (() => {
     return { label: '高風險', color: '#ef4444', level: 4 };
   }
 
+  function getSortinoLevel(s) {
+    if (s === null) return { label: '—', color: '#888' };
+    if (s >= 2) return { label: '優秀', color: '#22c55e' };
+    if (s >= 1) return { label: '良好', color: '#6366f1' };
+    if (s >= 0) return { label: '普通', color: '#eab308' };
+    return { label: '虧損', color: '#ef4444' };
+  }
+
   function renderRisk(data) {
     const content = document.getElementById('riskContent');
 
@@ -282,7 +290,10 @@ const Overview = (() => {
                 </div>
                 <div class="risk-level" style="color:${twRisk.color}">${twRisk.label}</div>
                 <div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min((data.twPortfolioVol || 0) / 60 * 100, 100)}%;background:${twRisk.color}"></div></div>
-                <div class="risk-bench">基準 0050: ${data.benchmarks['0050'] !== null ? data.benchmarks['0050'] + '%' : '—'}</div>
+                <div class="risk-bench" style="margin-top:8px;font-size:0.8rem;">
+                    ⬇️ 下行波動: <strong style="color:${getRiskLevel(data.twPortfolioDsVol).color}">${data.twPortfolioDsVol !== null ? data.twPortfolioDsVol + '%' : '—'}</strong>
+                </div>
+                <div class="risk-bench">基準 0050: ${data.benchmarks['0050'] !== null ? data.benchmarks['0050'] + '%' : '—'} (下行 ${data.benchmarks['0050_ds'] !== null ? data.benchmarks['0050_ds'] + '%' : '—'})</div>
             </div>
             <div class="risk-gauge">
                 <div class="risk-label">🇺🇸 美股組合</div>
@@ -291,7 +302,10 @@ const Overview = (() => {
                 </div>
                 <div class="risk-level" style="color:${usRisk.color}">${usRisk.label}</div>
                 <div class="risk-bar"><div class="risk-bar-fill" style="width:${Math.min((data.usPortfolioVol || 0) / 60 * 100, 100)}%;background:${usRisk.color}"></div></div>
-                <div class="risk-bench">基準 SPY: ${data.benchmarks['SPY'] !== null ? data.benchmarks['SPY'] + '%' : '—'}</div>
+                <div class="risk-bench" style="margin-top:8px;font-size:0.8rem;">
+                    ⬇️ 下行波動: <strong style="color:${getRiskLevel(data.usPortfolioDsVol).color}">${data.usPortfolioDsVol !== null ? data.usPortfolioDsVol + '%' : '—'}</strong>
+                </div>
+                <div class="risk-bench">基準 SPY: ${data.benchmarks['SPY'] !== null ? data.benchmarks['SPY'] + '%' : '—'} (下行 ${data.benchmarks['SPY_ds'] !== null ? data.benchmarks['SPY_ds'] + '%' : '—'})</div>
             </div>
             <div class="risk-gauge" style="border-color:${combinedRisk.color}40;">
                 <div class="risk-label">🌐 總體組合</div>
@@ -326,11 +340,15 @@ const Overview = (() => {
 
     let rows = entries.map(([sym, m]) => {
       const risk = getRiskLevel(m.volatility);
+      const dsRisk = getRiskLevel(m.downsideVol);
+      const sr = getSortinoLevel(m.sortino);
       return `
                 <tr>
                     <td><strong>${sym}</strong></td>
                     <td>${m.volatility !== null ? m.volatility + '%' : '—'}</td>
+                    <td style="color:${dsRisk.color}">${m.downsideVol !== null ? m.downsideVol + '%' : '—'}</td>
                     <td>${m.beta !== null ? m.beta : '—'}</td>
+                    <td style="color:${sr.color};font-weight:600;">${m.sortino !== null ? m.sortino : '—'} <span style="font-size:0.7rem;font-weight:400;">${sr.label}</span></td>
                     <td style="color:${risk.color}">${risk.label}</td>
                 </tr>
             `;
@@ -344,7 +362,9 @@ const Overview = (() => {
                         <tr>
                             <th>代號</th>
                             <th>年化波動率</th>
+                            <th>⬇️ 下行波動</th>
                             <th>Beta (vs ${benchLabel})</th>
+                            <th>Sortino</th>
                             <th>風險等級</th>
                         </tr>
                     </thead>

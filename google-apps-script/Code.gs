@@ -388,6 +388,8 @@ function handleGetRiskMetrics() {
     if (prices.length > 10) {
       usStocks[sym] = {
         volatility: calcAnnualizedVol(prices),
+        downsideVol: calcDownsideVol(prices, 0),
+        sortino: calcSortinoRatio(prices, 0.04),
         beta: calcBeta(prices, benchUS),
         dataPoints: prices.length,
       };
@@ -399,6 +401,8 @@ function handleGetRiskMetrics() {
     if (prices.length > 10) {
       twStocks[sym] = {
         volatility: calcAnnualizedVol(prices),
+        downsideVol: calcDownsideVol(prices, 0),
+        sortino: calcSortinoRatio(prices, 0.015),
         beta: calcBeta(prices, benchTW),
         dataPoints: prices.length,
       };
@@ -412,14 +416,34 @@ function handleGetRiskMetrics() {
   const usPortfolioVol = calcPortfolioVol(usStocks, usHoldings);
   const twPortfolioVol = calcPortfolioVol(twStocks, twHoldings);
 
+  // Portfolio-weighted downside volatility
+  const calcPortfolioDsVol = (stockMetrics, holdings) => {
+    const total = Object.values(holdings).reduce((s, v) => s + v, 0);
+    if (total === 0) return null;
+    let weightedVol = 0;
+    Object.entries(holdings).forEach(([sym, cost]) => {
+      const weight = cost / total;
+      const vol = stockMetrics[sym] ? stockMetrics[sym].downsideVol : 0;
+      if (vol) weightedVol += weight * vol;
+    });
+    return Math.round(weightedVol * 100) / 100;
+  };
+
+  const usPortfolioDsVol = calcPortfolioDsVol(usStocks, usHoldings);
+  const twPortfolioDsVol = calcPortfolioDsVol(twStocks, twHoldings);
+
   return {
     us: usStocks,
     tw: twStocks,
     usPortfolioVol,
     twPortfolioVol,
+    usPortfolioDsVol,
+    twPortfolioDsVol,
     benchmarks: {
       SPY: benchUS.length > 10 ? calcAnnualizedVol(benchUS) : null,
       '0050': benchTW.length > 10 ? calcAnnualizedVol(benchTW) : null,
+      SPY_ds: benchUS.length > 10 ? calcDownsideVol(benchUS, 0) : null,
+      '0050_ds': benchTW.length > 10 ? calcDownsideVol(benchTW, 0) : null,
     },
   };
 }
@@ -474,6 +498,32 @@ function calcAnnualizedVol(prices) {
 
   // 年化波動率 (%), 保留2位小數
   return Math.round(dailyVol * Math.sqrt(252) * 10000) / 100;
+}
+
+function calcDownsideVol(prices, mar) {
+  mar = mar || 0; // MAR = Minimum Acceptable Return, 預設 0%
+  const returns = calcDailyReturns(prices);
+  if (returns.length < 2) return null;
+
+  const downsideReturns = returns.filter(r => r < mar);
+  if (downsideReturns.length < 2) return 0;
+
+  const variance = downsideReturns.reduce((s, r) => s + Math.pow(r - mar, 2), 0) / (downsideReturns.length - 1);
+  return Math.round(Math.sqrt(variance) * Math.sqrt(252) * 10000) / 100;
+}
+
+function calcSortinoRatio(prices, riskFreeAnnual) {
+  riskFreeAnnual = riskFreeAnnual || 0.04;
+  const returns = calcDailyReturns(prices);
+  if (returns.length < 10) return null;
+
+  const avgDailyReturn = returns.reduce((s, r) => s + r, 0) / returns.length;
+  const annualizedReturn = avgDailyReturn * 252;
+
+  const dsVol = calcDownsideVol(prices, 0);
+  if (!dsVol || dsVol === 0) return null;
+
+  return Math.round(((annualizedReturn - riskFreeAnnual) / (dsVol / 100)) * 100) / 100;
 }
 
 function calcBeta(stockPrices, marketPrices) {
