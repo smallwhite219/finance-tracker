@@ -70,7 +70,9 @@ const Overview = (() => {
 
   function calcTotal(records, priceKey) {
     return records.reduce((sum, r) => {
-      return sum + (Number(r[priceKey]) || 0) * (Number(r['股數']) || 0);
+      const type = r['類型'] || '買入';
+      const amount = (Number(r[priceKey]) || 0) * (Number(r['股數']) || 0);
+      return sum + (type === '賣出' ? -amount : amount);
     }, 0);
   }
 
@@ -78,12 +80,14 @@ const Overview = (() => {
     const grouped = {};
     records.forEach(r => {
       const sym = r['代號'];
+      const type = r['類型'] || '買入';
       const cost = (Number(r[priceKey]) || 0) * (Number(r['股數']) || 0);
       if (!grouped[sym]) grouped[sym] = 0;
-      grouped[sym] += cost;
+      grouped[sym] += type === '賣出' ? -cost : cost;
     });
 
     return Object.entries(grouped)
+      .filter(([, value]) => value > 0)
       .map(([label, value]) => ({ label, value: Math.round(value * 100) / 100 }))
       .sort((a, b) => b.value - a.value);
   }
@@ -143,11 +147,17 @@ const Overview = (() => {
       const grouped = {};
       records.forEach(r => {
         const sym = String(r['代號']).trim();
+        const type = r['類型'] || '買入';
         if (!grouped[sym]) grouped[sym] = { totalCost: 0, totalShares: 0 };
         const p = Number(r[priceKey]) || 0;
         const s = Number(r['股數']) || 0;
-        grouped[sym].totalCost += p * s;
-        grouped[sym].totalShares += s;
+        if (type === '賣出') {
+          grouped[sym].totalCost -= p * s;
+          grouped[sym].totalShares -= s;
+        } else {
+          grouped[sym].totalCost += p * s;
+          grouped[sym].totalShares += s;
+        }
       });
       return grouped;
     }

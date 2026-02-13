@@ -126,9 +126,9 @@ function deleteRecord(sheetName, rowNum) {
 function getDefaultHeaders(sheetName) {
   switch (sheetName) {
     case '美股':
-      return ['代號', '日期', '價格(USD)', '股數', '停損價', '停利價', '加碼價', '減碼價'];
+      return ['代號', '類型', '日期', '價格(USD)', '股數', '停損價', '停利價', '加碼價', '減碼價'];
     case '台股':
-      return ['代號', '日期', '價格(TWD)', '股數', '停損價', '停利價', '加碼價', '減碼價'];
+      return ['代號', '類型', '日期', '價格(TWD)', '股數', '停損價', '停利價', '加碼價', '減碼價'];
     case '樂透':
       return ['日期', '期數', '號碼', '花費', '中獎金額'];
     default:
@@ -435,6 +435,7 @@ function getHoldings(sheet, priceKey) {
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const symIdx = headers.indexOf('代號');
+  const typeIdx = headers.indexOf('類型');
   const priceIdx = headers.indexOf(priceKey);
   const sharesIdx = headers.indexOf('股數');
   if (symIdx === -1 || priceIdx === -1 || sharesIdx === -1) return {};
@@ -442,8 +443,13 @@ function getHoldings(sheet, priceKey) {
   const holdings = {};
   for (let i = 1; i < data.length; i++) {
     const sym = String(data[i][symIdx]).trim();
+    const type = typeIdx !== -1 ? String(data[i][typeIdx]).trim() : '買入';
     const cost = (Number(data[i][priceIdx]) || 0) * (Number(data[i][sharesIdx]) || 0);
-    holdings[sym] = (holdings[sym] || 0) + cost;
+    if (type === '賣出') {
+      holdings[sym] = (holdings[sym] || 0) - cost;
+    } else {
+      holdings[sym] = (holdings[sym] || 0) + cost;
+    }
   }
   return holdings;
 }

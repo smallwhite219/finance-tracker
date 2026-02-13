@@ -147,15 +147,22 @@
                 <form id="usStockForm" class="stock-form">
                     <div class="form-row">
                         <div class="form-group">
+                            <label>類型 <span class="required">*</span></label>
+                            <select name="類型" id="usType" required>
+                                <option value="買入" selected>🟢 買入</option>
+                                <option value="賣出">🔴 賣出</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>股票代號 <span class="required">*</span></label>
                             <input type="text" name="代號" placeholder="如 AAPL" required>
                         </div>
                         <div class="form-group">
-                            <label>購買日期 <span class="required">*</span></label>
+                            <label>日期 <span class="required">*</span></label>
                             <input type="date" name="日期" required>
                         </div>
                         <div class="form-group">
-                            <label>購買價格 (USD) <span class="required">*</span></label>
+                            <label>價格 (USD) <span class="required">*</span></label>
                             <input type="number" name="價格(USD)" step="0.01" min="0" placeholder="0.00" required>
                         </div>
                         <div class="form-group">
@@ -163,7 +170,7 @@
                             <input type="number" name="股數" step="0.01" min="0" placeholder="0" required>
                         </div>
                     </div>
-                    <div class="form-row targets-row">
+                    <div class="form-row targets-row" id="usTargetsRow">
                         <div class="form-group">
                             <label>🔴 停損價</label>
                             <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
@@ -213,6 +220,7 @@
                         <thead>
                             <tr>
                                 <th>代號</th>
+                                <th>類型</th>
                                 <th>日期</th>
                                 <th>價格</th>
                                 <th>股數</th>
@@ -242,15 +250,22 @@
                 <form id="twStockForm" class="stock-form">
                     <div class="form-row">
                         <div class="form-group">
+                            <label>類型 <span class="required">*</span></label>
+                            <select name="類型" id="twType" required>
+                                <option value="買入" selected>🟢 買入</option>
+                                <option value="賣出">🔴 賣出</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
                             <label>股票代號 <span class="required">*</span></label>
                             <input type="text" name="代號" placeholder="如 2330" required>
                         </div>
                         <div class="form-group">
-                            <label>購買日期 <span class="required">*</span></label>
+                            <label>日期 <span class="required">*</span></label>
                             <input type="date" name="日期" required>
                         </div>
                         <div class="form-group">
-                            <label>購買價格 (TWD) <span class="required">*</span></label>
+                            <label>價格 (TWD) <span class="required">*</span></label>
                             <input type="number" name="價格(TWD)" step="0.01" min="0" placeholder="0.00" required>
                         </div>
                         <div class="form-group">
@@ -258,7 +273,7 @@
                             <input type="number" name="股數" step="1" min="0" placeholder="0" required>
                         </div>
                     </div>
-                    <div class="form-row targets-row">
+                    <div class="form-row targets-row" id="twTargetsRow">
                         <div class="form-group">
                             <label>🔴 停損價</label>
                             <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
@@ -306,6 +321,7 @@
                         <thead>
                             <tr>
                                 <th>代號</th>
+                                <th>類型</th>
                                 <th>日期</th>
                                 <th>價格</th>
                                 <th>股數</th>
