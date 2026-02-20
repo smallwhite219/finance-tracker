@@ -142,16 +142,24 @@ const Stock = (() => {
                 // 買入：收集 checkbox 組成買入條件字串
                 if (!isSell) {
                     const conditions = [];
-                    const checkboxNames = ['chk_收益增長', 'chk_成交量POC', 'chk_SMA200', 'chk_VWAP突破', 'chk_損益比'];
-                    const condLabels = ['收益增長', '成交量POC上', 'SMA200上', 'VWAP突破', '損益比>1'];
-                    checkboxNames.forEach((name, i) => {
-                        if (form.querySelector(`[name="${name}"]`)?.checked) {
-                            conditions.push(condLabels[i]);
-                        }
-                    });
+                    // 收益增長
+                    if (form.querySelector('[name="chk_收益增長"]')?.checked) conditions.push('收益增長');
+
+                    // 成交量POC (3個子選項)
+                    const p9w = form.querySelector('[name="chk_POC_9w"]')?.checked ? '有' : '無';
+                    const p6m = form.querySelector('[name="chk_POC_6m"]')?.checked ? '有' : '無';
+                    const p1y = form.querySelector('[name="chk_POC_1y"]')?.checked ? '有' : '無';
+                    conditions.push(`成交量POC[${p9w},${p6m},${p1y}]`);
+
+                    // 其他單一項
+                    if (form.querySelector('[name="chk_SMA200"]')?.checked) conditions.push('SMA200上');
+                    if (form.querySelector('[name="chk_VWAP突破"]')?.checked) conditions.push('VWAP突破');
+                    if (form.querySelector('[name="chk_損益比"]')?.checked) conditions.push('損益比>1');
+
                     data['買入條件'] = conditions.join(', ');
-                    // 清除 checkbox keys
-                    checkboxNames.forEach(n => delete data[n]);
+
+                    // 清除所有以 chk_ 開頭的 key (避免送到後端)
+                    Object.keys(data).forEach(k => { if (k.startsWith('chk_')) delete data[k]; });
                 }
 
                 // 賣出：計算獲利 & 上傳圖片

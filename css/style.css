@@ -370,6 +370,23 @@ body {
     flex-wrap: wrap;
     gap: 12px !important;
     margin-bottom: 14px;
+    align-items: center;
+}
+
+.chk-group-inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+}
+
+.chk-label-sm {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 600;
 }
 
 .checklist-item {
