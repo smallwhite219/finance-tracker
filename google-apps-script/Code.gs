@@ -42,6 +42,10 @@ function handleRequest(e) {
       case 'getRiskMetrics':
         result = handleGetRiskMetrics();
         break;
+      case 'uploadImage':
+        const imgData = JSON.parse(e.postData.contents);
+        result = uploadImageToDrive(imgData.base64, imgData.fileName);
+        break;
       default:
         result = { error: 'Unknown action: ' + action };
     }
@@ -126,13 +130,35 @@ function deleteRecord(sheetName, rowNum) {
 function getDefaultHeaders(sheetName) {
   switch (sheetName) {
     case '美股':
-      return ['代號', '類型', '日期', '價格(USD)', '股數', '停損價', '停利價', '加碼價', '減碼價'];
+      return ['代號', '類型', '日期', '價格(USD)', '股數', '停損價', '停利價', '加碼價', '減碼價', '目標價', '買入條件', '股票類型', '操作建議', 'AI判斷', '檢討心得', '圖片連結', '獲利', '報酬率'];
     case '台股':
-      return ['代號', '類型', '日期', '價格(TWD)', '股數', '停損價', '停利價', '加碼價', '減碼價'];
+      return ['代號', '類型', '日期', '價格(TWD)', '股數', '停損價', '停利價', '加碼價', '減碼價', '目標價', '買入條件', '股票類型', '操作建議', 'AI判斷', '檢討心得', '圖片連結', '獲利', '報酬率'];
     case '樂透':
       return ['日期', '期數', '號碼', '花費', '中獎金額'];
     default:
       return [];
+  }
+}
+
+// ========== 圖片上傳 ==========
+
+function uploadImageToDrive(base64Data, fileName) {
+  try {
+    const FOLDER_ID = '12gY6ozQutGiBVpTC6lUfqRW-PDbFvWYG';
+    const folder = DriveApp.getFolderById(FOLDER_ID);
+
+    // Decode base64
+    const decoded = Utilities.base64Decode(base64Data);
+    const blob = Utilities.newBlob(decoded, 'image/png', fileName);
+
+    const file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    const fileUrl = 'https://drive.google.com/file/d/' + file.getId() + '/view';
+
+    return { success: true, fileUrl: fileUrl, fileId: file.getId() };
+  } catch (e) {
+    return { error: '圖片上傳失敗: ' + e.message };
   }
 }
 

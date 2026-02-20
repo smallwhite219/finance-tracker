@@ -345,6 +345,143 @@ body {
     margin-top: 4px;
 }
 
+/* ========== Buy/Sell Sections ========== */
+.form-section-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.buy-section,
+.sell-section {
+    margin-top: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    animation: fadeIn 0.3s ease;
+}
+
+.buy-checklist-row {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 12px !important;
+    margin-bottom: 14px;
+}
+
+.checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.checklist-item:hover {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.3);
+}
+
+.checklist-item input[type="checkbox"] {
+    accent-color: var(--accent-blue);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+.checklist-item:has(input:checked) {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--accent-green);
+}
+
+.form-group textarea {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: var(--transition);
+    outline: none;
+    resize: vertical;
+    min-height: 60px;
+}
+
+.form-group textarea:focus {
+    border-color: var(--border-focus);
+    background-color: rgba(99, 102, 241, 0.05);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.form-group textarea::placeholder {
+    color: var(--text-muted);
+}
+
+/* Profit Display */
+.profit-display {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    margin-bottom: 14px;
+}
+
+.profit-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.85rem;
+}
+
+.profit-label {
+    color: var(--text-muted);
+}
+
+.profit-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.profit-amount,
+.profit-roi {
+    font-size: 1rem;
+}
+
+/* File Input */
+.file-input {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed var(--border-glass);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: var(--transition);
+    width: 100%;
+}
+
+.file-input:hover {
+    border-color: var(--accent-blue);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.image-preview img {
+    border: 1px solid var(--border-glass);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
 /* ========== Buttons ========== */
 .btn {
     padding: 10px 24px;

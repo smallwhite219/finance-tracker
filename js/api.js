@@ -69,5 +69,18 @@ const API = (() => {
         return await res.json();
     }
 
-    return { getBaseUrl, setBaseUrl, isConfigured, fetchRecords, addRecord, deleteRecord, getPrices, fetchRiskMetrics };
+    async function uploadImage(base64Data, fileName) {
+        const url = getBaseUrl();
+        if (!url) throw new Error('API URL 未設定');
+
+        const res = await fetch(`${url}?action=uploadImage`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ base64: base64Data, fileName }),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return await res.json();
+    }
+
+    return { getBaseUrl, setBaseUrl, isConfigured, fetchRecords, addRecord, deleteRecord, getPrices, fetchRiskMetrics, uploadImage };
 })();

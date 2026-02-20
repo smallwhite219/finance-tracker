@@ -155,7 +155,7 @@
                         </div>
                         <div class="form-group">
                             <label>股票代號 <span class="required">*</span></label>
-                            <input type="text" name="代號" placeholder="如 AAPL" required>
+                            <input type="text" name="代號" id="usSymbolInput" placeholder="如 AAPL" required>
                         </div>
                         <div class="form-group">
                             <label>日期 <span class="required">*</span></label>
@@ -163,31 +163,128 @@
                         </div>
                         <div class="form-group">
                             <label>價格 (USD) <span class="required">*</span></label>
-                            <input type="number" name="價格(USD)" step="0.01" min="0" placeholder="0.00" required>
+                            <input type="number" name="價格(USD)" id="usPriceInput" step="0.01" min="0" placeholder="0.00"
+                                required>
                         </div>
                         <div class="form-group">
                             <label>股數 <span class="required">*</span></label>
-                            <input type="number" name="股數" step="0.01" min="0" placeholder="0" required>
+                            <input type="number" name="股數" id="usSharesInput" step="0.01" min="0" placeholder="0"
+                                required>
                         </div>
                     </div>
-                    <div class="form-row targets-row" id="usTargetsRow">
-                        <div class="form-group">
-                            <label>🔴 停損價</label>
-                            <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
+
+                    <!-- 買入條件評比 -->
+                    <div class="buy-section" id="usBuySection">
+                        <div class="form-section-title">📋 買入條件評比</div>
+                        <div class="form-row buy-checklist-row">
+                            <label class="checklist-item"><input type="checkbox" name="chk_收益增長" value="1"> 收益增長</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_成交量POC" value="1">
+                                [9周、6個月、1年]成交量POC上</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_SMA200" value="1">
+                                SMA200上</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_VWAP突破" value="1">
+                                突破下降趨勢(VWAP綠線)</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_損益比" value="1"> 損益比 1
+                                以上</label>
                         </div>
-                        <div class="form-group">
-                            <label>🟢 停利價</label>
-                            <input type="number" name="停利價" step="0.01" min="0" placeholder="選填">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📊 股票類型</label>
+                                <select name="股票類型">
+                                    <option value="">— 請選擇 —</option>
+                                    <option value="高風險高回報">1. 高風險高回報</option>
+                                    <option value="穩健成長股">2. 穩健成長股</option>
+                                    <option value="低波動成長股">3. 低波動成長股</option>
+                                    <option value="防守型股票">4. 防守型股票</option>
+                                    <option value="穩健型">5. 穩健型</option>
+                                    <option value="低風險低回報">6. 低風險低回報</option>
+                                    <option value="高風險低回報">7. 高風險低回報</option>
+                                    <option value="平衡型">8. 平衡型</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>🎯 操作建議</label>
+                                <select name="操作建議">
+                                    <option value="">— 請選擇 —</option>
+                                    <option value="強烈買入">1. 強烈買入</option>
+                                    <option value="買入">2. 買入</option>
+                                    <option value="持有">3. 持有</option>
+                                    <option value="謹慎">4. 謹慎</option>
+                                    <option value="高風險">5. 高風險</option>
+                                    <option value="避免">6. 避免</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>🔵 加碼價</label>
-                            <input type="number" name="加碼價" step="0.01" min="0" placeholder="選填">
+                        <div class="form-row targets-row" id="usTargetsRow">
+                            <div class="form-group">
+                                <label>🎯 目標價</label>
+                                <input type="number" name="目標價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🔴 停損價</label>
+                                <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🟢 停利價</label>
+                                <input type="number" name="停利價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🔵 加碼價</label>
+                                <input type="number" name="加碼價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🟡 減碼價</label>
+                                <input type="number" name="減碼價" step="0.01" min="0" placeholder="選填">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>🟡 減碼價</label>
-                            <input type="number" name="減碼價" step="0.01" min="0" placeholder="選填">
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label>🤖 AI判斷</label>
+                                <textarea name="AI判斷" rows="2" placeholder="AI 分析摘要（選填）"></textarea>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- 賣出檢討區 -->
+                    <div class="sell-section" id="usSellSection" style="display:none;">
+                        <div class="form-section-title">📝 賣出檢討</div>
+                        <div class="profit-display" id="usProfitDisplay" style="display:none;">
+                            <div class="profit-row">
+                                <span class="profit-label">平均買入價：</span>
+                                <span class="profit-value" id="usAvgBuyPrice">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">賣出價：</span>
+                                <span class="profit-value" id="usSellPrice">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">價差：</span>
+                                <span class="profit-value" id="usPriceDiff">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">獲利金額：</span>
+                                <span class="profit-value profit-amount" id="usProfitAmount">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">報酬率：</span>
+                                <span class="profit-value profit-roi" id="usProfitRoi">—</span>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label>💭 檢討心得</label>
+                                <textarea name="檢討心得" rows="3" placeholder="賣出原因、反思與心得..."></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label>📷 上傳截圖</label>
+                                <input type="file" id="usImageUpload" accept="image/*" class="file-input">
+                                <div class="image-preview" id="usImagePreview"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">
                         <span class="btn-text">新增</span>
                         <span class="btn-spinner" style="display:none;">⏳</span>
@@ -224,10 +321,8 @@
                                 <th>日期</th>
                                 <th>價格</th>
                                 <th>股數</th>
-                                <th>停損</th>
-                                <th>停利</th>
-                                <th>加碼</th>
-                                <th>減碼</th>
+                                <th>條件/心得</th>
+                                <th>獲利</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
@@ -258,7 +353,7 @@
                         </div>
                         <div class="form-group">
                             <label>股票代號 <span class="required">*</span></label>
-                            <input type="text" name="代號" placeholder="如 2330" required>
+                            <input type="text" name="代號" id="twSymbolInput" placeholder="如 2330" required>
                         </div>
                         <div class="form-group">
                             <label>日期 <span class="required">*</span></label>
@@ -266,31 +361,127 @@
                         </div>
                         <div class="form-group">
                             <label>價格 (TWD) <span class="required">*</span></label>
-                            <input type="number" name="價格(TWD)" step="0.01" min="0" placeholder="0.00" required>
+                            <input type="number" name="價格(TWD)" id="twPriceInput" step="0.01" min="0" placeholder="0.00"
+                                required>
                         </div>
                         <div class="form-group">
                             <label>股數 <span class="required">*</span></label>
-                            <input type="number" name="股數" step="1" min="0" placeholder="0" required>
+                            <input type="number" name="股數" id="twSharesInput" step="1" min="0" placeholder="0" required>
                         </div>
                     </div>
-                    <div class="form-row targets-row" id="twTargetsRow">
-                        <div class="form-group">
-                            <label>🔴 停損價</label>
-                            <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
+
+                    <!-- 買入條件評比 -->
+                    <div class="buy-section" id="twBuySection">
+                        <div class="form-section-title">📋 買入條件評比</div>
+                        <div class="form-row buy-checklist-row">
+                            <label class="checklist-item"><input type="checkbox" name="chk_收益增長" value="1"> 收益增長</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_成交量POC" value="1">
+                                [9周、6個月、1年]成交量POC上</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_SMA200" value="1">
+                                SMA200上</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_VWAP突破" value="1">
+                                突破下降趨勢(VWAP綠線)</label>
+                            <label class="checklist-item"><input type="checkbox" name="chk_損益比" value="1"> 損益比 1
+                                以上</label>
                         </div>
-                        <div class="form-group">
-                            <label>🟢 停利價</label>
-                            <input type="number" name="停利價" step="0.01" min="0" placeholder="選填">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>📊 股票類型</label>
+                                <select name="股票類型">
+                                    <option value="">— 請選擇 —</option>
+                                    <option value="高風險高回報">1. 高風險高回報</option>
+                                    <option value="穩健成長股">2. 穩健成長股</option>
+                                    <option value="低波動成長股">3. 低波動成長股</option>
+                                    <option value="防守型股票">4. 防守型股票</option>
+                                    <option value="穩健型">5. 穩健型</option>
+                                    <option value="低風險低回報">6. 低風險低回報</option>
+                                    <option value="高風險低回報">7. 高風險低回報</option>
+                                    <option value="平衡型">8. 平衡型</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>🎯 操作建議</label>
+                                <select name="操作建議">
+                                    <option value="">— 請選擇 —</option>
+                                    <option value="強烈買入">1. 強烈買入</option>
+                                    <option value="買入">2. 買入</option>
+                                    <option value="持有">3. 持有</option>
+                                    <option value="謹慎">4. 謹慎</option>
+                                    <option value="高風險">5. 高風險</option>
+                                    <option value="避免">6. 避免</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>🔵 加碼價</label>
-                            <input type="number" name="加碼價" step="0.01" min="0" placeholder="選填">
+                        <div class="form-row targets-row" id="twTargetsRow">
+                            <div class="form-group">
+                                <label>🎯 目標價</label>
+                                <input type="number" name="目標價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🔴 停損價</label>
+                                <input type="number" name="停損價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🟢 停利價</label>
+                                <input type="number" name="停利價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🔵 加碼價</label>
+                                <input type="number" name="加碼價" step="0.01" min="0" placeholder="選填">
+                            </div>
+                            <div class="form-group">
+                                <label>🟡 減碼價</label>
+                                <input type="number" name="減碼價" step="0.01" min="0" placeholder="選填">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>🟡 減碼價</label>
-                            <input type="number" name="減碼價" step="0.01" min="0" placeholder="選填">
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label>🤖 AI判斷</label>
+                                <textarea name="AI判斷" rows="2" placeholder="AI 分析摘要（選填）"></textarea>
+                            </div>
                         </div>
                     </div>
+
+                    <!-- 賣出檢討區 -->
+                    <div class="sell-section" id="twSellSection" style="display:none;">
+                        <div class="form-section-title">📝 賣出檢討</div>
+                        <div class="profit-display" id="twProfitDisplay" style="display:none;">
+                            <div class="profit-row">
+                                <span class="profit-label">平均買入價：</span>
+                                <span class="profit-value" id="twAvgBuyPrice">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">賣出價：</span>
+                                <span class="profit-value" id="twSellPrice">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">價差：</span>
+                                <span class="profit-value" id="twPriceDiff">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">獲利金額：</span>
+                                <span class="profit-value profit-amount" id="twProfitAmount">—</span>
+                            </div>
+                            <div class="profit-row">
+                                <span class="profit-label">報酬率：</span>
+                                <span class="profit-value profit-roi" id="twProfitRoi">—</span>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label>💭 檢討心得</label>
+                                <textarea name="檢討心得" rows="3" placeholder="賣出原因、反思與心得..."></textarea>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group" style="flex:1;">
+                                <label>📷 上傳截圖</label>
+                                <input type="file" id="twImageUpload" accept="image/*" class="file-input">
+                                <div class="image-preview" id="twImagePreview"></div>
+                            </div>
+                        </div>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">
                         <span class="btn-text">新增</span>
                         <span class="btn-spinner" style="display:none;">⏳</span>
@@ -325,10 +516,8 @@
                                 <th>日期</th>
                                 <th>價格</th>
                                 <th>股數</th>
-                                <th>停損</th>
-                                <th>停利</th>
-                                <th>加碼</th>
-                                <th>減碼</th>
+                                <th>條件/心得</th>
+                                <th>獲利</th>
                                 <th>操作</th>
                             </tr>
                         </thead>
